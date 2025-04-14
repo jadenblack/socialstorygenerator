@@ -64,27 +64,23 @@ export default function ResetPasswordPage() {
         }
     };
 
-    if (status === 'success') {
-        return (
-            <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Password Reset Complete
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
-                        Your password has been successfully reset. You can now log in with your new password.
-                    </p>
-                </div>
-                <div className="text-center">
-                    <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-                        Go to login
-                    </Link>
-                </div>
+    const content = status === 'success' ? (
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+            <div>
+                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                    Password Reset Complete
+                </h2>
+                <p className="mt-2 text-center text-sm text-gray-600">
+                    Your password has been successfully reset. You can now log in with your new password.
+                </p>
             </div>
-        );
-    }
-
-    return (
+            <div className="text-center">
+                <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                    Go to login
+                </Link>
+            </div>
+        </div>
+    ) : (
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
             <div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -169,6 +165,43 @@ export default function ResetPasswordPage() {
                     </p>
                 </div>
             </form>
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen bg-gray-50 relative">
+            {/* Grid background pattern */}
+            <div className="absolute inset-0 bg-[#F1F5F9] bg-opacity-90">
+                <div className="absolute inset-0" style={{
+                    backgroundImage: `
+                    linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+                    linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+                `,
+                    backgroundSize: '4rem 4rem'
+                }} />
+            </div>
+
+            {/* Content */}
+            <div className="relative min-h-screen flex flex-col">
+                <main className="flex-grow flex items-center justify-center py-7 px-4 sm:px-6 lg:px-8">
+                    {content}
+                </main>
+
+                {/* Footer */}
+                <footer className="bg-black text-gray-300">
+                    <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4">
+                        <div className="flex flex-col sm:flex-row items-center sm:justify-center gap-4 sm:gap-12">
+                            <div>
+                                Need Help?&nbsp;
+                                <Link href="/contact" className="text-white font-medium transition-colors duration-300 hover:text-gray-300">
+                                    Contact Us
+                                </Link>
+                            </div>
+                            <div>© Social Story Generator 2025</div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
         </div>
     );
 } 
