@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 
 export default function Auth() {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading-google' | 'loading-magic-link' | 'success-google' | 'success-magic-link' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading-google' | 'success-google' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
@@ -21,37 +20,6 @@ export default function Auth() {
       setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
     }
   };
-
-  const handleMagicLinkSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setStatus('loading-magic-link');
-      const { error: magicLinkError } = await authClient.signIn.magicLink({
-        email,
-        callbackURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL + '/'
-      });
-      
-      if (magicLinkError) throw new Error(magicLinkError.message);
-      
-      setStatus('success-magic-link');
-      setEmail('');
-    } catch (err) {
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Failed to send magic link');
-    }
-  };
-
-  if (status === 'success-magic-link') {
-    return (
-      <div className="max-w-md mx-auto p-6 space-y-6">
-        <div>
-          <p className="text-sm font-medium text-green-800 text-center bg-green-50 p-4 -mt-6 rounded-lg">
-            Check your email for the magic link!  
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-md mx-auto p-6 space-y-6">
@@ -82,39 +50,6 @@ export default function Auth() {
           {status === 'loading-google' ? 'Signing in...' : 'Sign in with Google'}
         </button>
       </div>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300" />
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white text-gray-500">Or continue with</span>
-        </div>
-      </div>
-
-      <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email address
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={status.includes('loading')}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-        >
-          {status === 'loading-magic-link' ? 'Sending...' : 'Send Magic Link'}
-        </button>
-      </form>
 
       {status === 'error' && error && (
         <div className="rounded-md bg-red-50 p-4">

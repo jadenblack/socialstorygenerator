@@ -1,4 +1,4 @@
-import Auth from '@/app/components/Auth';
+import AuthForm from '@/app/components/AuthForm';
 
 export default function LoginPage() {
   return (
@@ -11,7 +11,7 @@ export default function LoginPage() {
           Sign in to your account to continue
         </p>
       </div>
-      <Auth />
+      <AuthForm mode="login" />
     </div>
   );
 } 
