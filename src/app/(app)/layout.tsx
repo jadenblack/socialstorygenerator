@@ -30,13 +30,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 <Link href="/" className="text-xl font-bold text-gray-900">
                   Social Story Generator
                 </Link>
-                <Link
-                  href="/upload"
-                  className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
-                >
-                  <Upload className="w-5 h-5" />
-                  <span className="text-sm">Upload</span>
-                </Link>
+                {!isPending && session?.user && (
+                  <Link
+                    href="/upload"
+                    className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    <Upload className="w-5 h-5" />
+                    <span className="text-sm">Upload</span>
+                  </Link>
+                )}
               </div>
               <Link
                 href="/account"
