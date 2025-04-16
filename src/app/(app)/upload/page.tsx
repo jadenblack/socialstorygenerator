@@ -6,6 +6,7 @@ import { processJsonFile } from '@/app/actions/upload';
 import FileUploadContainer from './FileUploadContainer';
 import { authClient } from '@/lib/auth-client';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
+import { saveUploadAction } from '@/app/actions/saveUpload';
 
 export default function UploadPage() {
     const router = useRouter();
@@ -40,7 +41,7 @@ export default function UploadPage() {
                 Upload your social media export file in JSON format to generate stories.
             </p>
 
-            <FileUploadContainer serverAction={processJsonFile} />
+            <FileUploadContainer serverAction={processJsonFile} saveUploadAction={saveUploadAction} />
         </div>
     );
 } 
