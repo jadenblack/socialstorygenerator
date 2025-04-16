@@ -310,7 +310,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                             </Link>
                         </p>
                     ) : (
-                        <p>
+                        <p className="text-sm text-gray-900">
                             Already have an account?{' '}
                             <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
                                 Sign in
