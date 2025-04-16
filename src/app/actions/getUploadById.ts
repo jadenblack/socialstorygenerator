@@ -58,6 +58,7 @@ export async function getUploadByIdAction(uploadId: string): Promise<GetUploadRe
             messageCount: upload.messageCount,
             data: upload.data as Root, // Cast to Root, assuming it's stored as an object
             createdAt: upload.createdAt,
+            sentimentAnalysisResult: upload.sentimentAnalysisResult
         };
 
         return { success: true, upload: resultUpload };

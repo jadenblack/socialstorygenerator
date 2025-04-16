@@ -112,3 +112,57 @@ a.inline-link:hover::after,
   background-position: 0 0;
   height: 3px;
 }
+
+/* --- ADD SENTIMENT BACKGROUND COLORS --- */
+.message-bubble {
+  transition: background-color 0.3s ease;
+}
+
+.message-bubble.SelfJudgment {
+  background-color: #63c653;
+  /* light green */
+}
+
+.message-bubble.Fear {
+  background-color: #d1c9ef;
+  /* light purple */
+}
+
+.message-bubble.Neutral {
+  background-color: #e5e7eb;
+  /* gray-200 */
+}
+
+.message-bubble.Distress {
+  background-color: #fecaca;
+  /* red-200 */
+}
+
+.message-bubble.Warmth {
+  background-color: #fe927a;
+  /* light orange/peach */
+}
+
+.message-bubble.Sorrow {
+  background-color: #bfdbfe;
+  /* blue-200 */
+}
+
+.message-bubble.Sarcasm {
+  background-color: #ffffff;
+  /* white */
+  border: 1px solid #d1d5db;
+  /* gray-300 */
+}
+
+.message-bubble.Positivity {
+  background-color: #a6ddaf;
+  /* light positive green */
+}
+
+.message-bubble.Wonder {
+  background-color: #70e63a;
+  /* bright green */
+}
+
+/* --- END SENTIMENT BACKGROUND COLORS --- */
