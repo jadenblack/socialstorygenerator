@@ -1,10 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import ClientWrapper from '../components/ClientWrapper';
 
 export default function VerifyEmailPage() {
+    return (
+        <ClientWrapper>
+            <VerifyEmailContent />
+        </ClientWrapper>
+    );
+}
+
+function VerifyEmailContent() {
     const searchParams = useSearchParams();
     const error = searchParams.get('error');
 

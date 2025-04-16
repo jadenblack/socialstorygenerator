@@ -1,4 +1,4 @@
-import { Root, Message, Participant } from '../instagram-models';
+import { Root } from '../instagram-models';
 
 /**
  * Interface for Instagram conversation statistics
@@ -103,8 +103,6 @@ export function processInstagramData(data: Root): InstagramStats {
  */
 export function getConversationTimeline(data: Root): { period: string; messageCount: number }[] {
     const messages = data.messages;
-    const timeline: { period: string; messageCount: number }[] = [];
-
     // Group messages by month
     const messagesByMonth = new Map<string, number>();
 

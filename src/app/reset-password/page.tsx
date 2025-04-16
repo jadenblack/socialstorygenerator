@@ -4,8 +4,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { resetPassword } from '@/lib/auth-client';
 import { useSearchParams } from 'next/navigation';
+import ClientWrapper from '@/app/components/ClientWrapper';
 
 export default function ResetPasswordPage() {
+    return (
+        <ClientWrapper>
+            <ResetPasswordContent />
+        </ClientWrapper>
+    );
+}
+
+function ResetPasswordContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
     const [newPassword, setNewPassword] = useState('');
@@ -48,7 +57,7 @@ export default function ResetPasswordPage() {
         }
 
         try {
-            const { data, error: resetError } = await resetPassword({
+            const { error: resetError } = await resetPassword({
                 newPassword,
                 token,
             });

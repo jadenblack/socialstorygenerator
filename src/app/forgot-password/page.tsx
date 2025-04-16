@@ -15,7 +15,7 @@ export default function ForgotPasswordPage() {
         setError(null);
 
         try {
-            const { data, error: resetError } = await forgetPassword({
+            const { error: resetError } = await forgetPassword({
                 email,
                 redirectTo: `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/reset-password`,
             });

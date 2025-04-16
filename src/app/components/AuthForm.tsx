@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { authClient, signIn, signUp } from '@/lib/auth-client';
+import { signIn, signUp } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 
 type AuthMode = 'login' | 'signup';
@@ -54,7 +54,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
         try {
             if (mode === 'login') {
-                const { data, error: signInError } = await signIn.email({
+                const { error: signInError } = await signIn.email({
                     email,
                     password,
                     callbackURL: callbackUrl
@@ -303,7 +303,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
                 <div className="text-sm text-center">
                     {mode === 'login' ? (
-                        <p>
+                        <p className="text-sm text-gray-900">
                             Don't have an account?{' '}
                             <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
                                 Sign up

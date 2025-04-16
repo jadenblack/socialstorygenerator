@@ -32,7 +32,7 @@ export async function processJsonFile(formData: FormData): Promise<{
         let data: Root;
         try {
             data = JSON.parse(content);
-        } catch (e) {
+        } catch {
             return { success: false, message: 'Invalid JSON format' };
         }
 

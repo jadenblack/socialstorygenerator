@@ -44,7 +44,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Test SMTP connection
-transporter.verify(function (error, success) {
+transporter.verify(function (error) {
   if (error) {
     console.error('SMTP connection error:', error);
   } else {
@@ -78,7 +78,7 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     requireEmailVerification: true,
-    sendResetPassword: async ({ user, url, token }, request) => {
+    sendResetPassword: async ({ user, url, token },) => {
       // Ensure URL is a string
       const resetUrl = typeof url === 'string' ? url : `${verificationEmailRedirectURL}?token=${token}`;
       console.log(`Sending password reset email to ${user.email}, URL: ${resetUrl}`);
@@ -97,7 +97,7 @@ export const auth = betterAuth({
     }
   },
   emailVerification: {
-    sendVerificationEmail: async ({ user, url, token }, request) => {
+    sendVerificationEmail: async ({ user, url, token }) => {
       // Ensure URL is a string
       const verificationUrl = typeof url === 'string' ? url : `${verificationEmailRedirectURL}?token=${token}`;
       console.log(`Sending verification email to ${user.email}, URL: ${verificationUrl}`);

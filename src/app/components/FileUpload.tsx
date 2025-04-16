@@ -27,7 +27,7 @@ export default function FileUpload({ onFileSelected, onError }: FileUploadProps)
         return true;
     };
 
-    const handleFileChange = async (file: File) => {
+    const handleFileChange = useCallback(async (file: File) => {
         if (!validateFile(file)) return;
 
         setFile(file);
@@ -42,7 +42,7 @@ export default function FileUpload({ onFileSelected, onError }: FileUploadProps)
         } finally {
             setIsUploading(false);
         }
-    };
+    }, [onFileSelected, onError, validateFile]);
 
     const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -70,7 +70,7 @@ export default function FileUpload({ onFileSelected, onError }: FileUploadProps)
             const droppedFile = e.dataTransfer.files[0];
             handleFileChange(droppedFile);
         }
-    }, []);
+    }, [handleFileChange]);
 
     const handleClick = () => {
         fileInputRef.current?.click();
