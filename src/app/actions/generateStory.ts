@@ -105,16 +105,9 @@ export async function generateStoryAction(input: GenerateStoryInput): Promise<Ge
             console.warn(`Sentiment analysis failed for upload ${uploadId}, result not saved.`);
             // Optionally return a specific error message if sentiment analysis failure should stop the process
         }
-
         return {
-            success: true,
-            message: `Story generation request processed. ${finalFilteredMessageCount} messages were used. (Placeholder)`,
-            data: {
-                story: `This is a placeholder story based on your ${finalFilteredMessageCount} filtered messages.`,
-                filteredMessageCount: finalFilteredMessageCount
-            }
+            success: true
         };
-
     } catch (error) {
         console.error("Error during story generation process:", error);
         return {

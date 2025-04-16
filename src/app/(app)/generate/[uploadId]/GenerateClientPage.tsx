@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { UserUpload } from '@/app/actions/getUploads';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import { Message } from '@/lib/instagram-models';
 import * as Slider from '@radix-ui/react-slider';
 import { GenerateStoryResult } from '@/lib/apiTypes';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // Basic date formatting to YYYY-MM-DD for input[type=date]
 const formatDateForInput = (date: Date): string => {
@@ -51,11 +53,33 @@ export default function GenerateClientPage({
     uploadId,
     generateStory
 }: GenerateClientPageProps) {
+    const router = useRouter();
     // Removed uploadData state, using prop directly
     // const [uploadData, setUploadData] = useState<UserUpload | null>(null);
     const [generationResult, setGenerationResult] = useState<{ message: string; story?: string } | null>(null);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [clientError, setClientError] = useState<string | null>(null); // Separate state for client-side issues
+    const [isGenerated, setIsGenerated] = useState<boolean>(false);
+    const [redirecting, setRedirecting] = useState<boolean>(false);
+
+    // Redirect timer after successful generation
+    useEffect(() => {
+        if (isGenerated && !redirecting) {
+            console.log('Setting up direct redirect to story page...');
+            setRedirecting(true);
+
+            // Use a simpler approach with window.location
+            const redirectTimer = setTimeout(() => {
+                console.log('Executing redirect now...');
+                window.location.href = `/story/${uploadId}`;
+            }, 1500); // Shorter delay for better user experience
+
+            return () => {
+                console.log('Cleanup called - clearing timer');
+                clearTimeout(redirectTimer);
+            };
+        }
+    }, [isGenerated, redirecting, uploadId]);
 
     // --- Date Initialization ---
     // Find the earliest and latest valid timestamps
@@ -163,6 +187,7 @@ export default function GenerateClientPage({
         setIsGenerating(true);
         setGenerationResult(null);
         setClientError(null);
+        setRedirecting(false);
 
         // Ensure dates are valid before creating ISO strings
         const startIso = startDate ? new Date(startDate).toISOString() : new Date(0).toISOString();
@@ -177,7 +202,18 @@ export default function GenerateClientPage({
             });
 
             if (result.success) {
-                setGenerationResult({ message: result.message || 'Success!', story: result.data?.story });
+                setGenerationResult({
+                    message: result.message || 'Success! Redirecting to your story...',
+                    story: result.data?.story
+                });
+                setIsGenerated(true); // Mark as generated to disable the button
+
+                // Set a direct redirect that doesn't rely on the useEffect
+                console.log('Setting direct redirect after successful generation');
+                setTimeout(() => {
+                    console.log('Redirecting from handleGenerateClick');
+                    window.location.href = `/story/${uploadId}`;
+                }, 2000);
             } else {
                 setClientError(result.message || 'Failed to generate story.');
             }
@@ -308,15 +344,15 @@ export default function GenerateClientPage({
 
                     <button
                         onClick={handleGenerateClick}
-                        disabled={isGenerating || filteredMessageCount === 0 || isWordCountExceeded}
-                        className={`w-full px-4 py-2 font-semibold text-white rounded-md transition duration-150 ease-in-out ${isGenerating || filteredMessageCount === 0 || isWordCountExceeded ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'}`}
+                        disabled={isGenerating || isGenerated || filteredMessageCount === 0 || isWordCountExceeded}
+                        className={`w-full px-4 py-2 font-semibold text-white rounded-md transition duration-150 ease-in-out ${isGenerating || isGenerated || filteredMessageCount === 0 || isWordCountExceeded ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'}`}
                     >
                         {isGenerating ? (
                             <>
                                 <LoadingSpinner size="w-5 h-5 inline mr-2" />
                                 Generating...
                             </>
-                        ) : 'Generate Story'}
+                        ) : isGenerated ? 'Story Generated' : 'Generate Story'}
                     </button>
 
                     {clientError && !isGenerating && (
@@ -327,7 +363,14 @@ export default function GenerateClientPage({
 
                     {generationResult && !isGenerating && ( // Only show results when not generating
                         <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded">
-                            <p className="font-semibold text-green-800 mb-2">{generationResult.message}</p>
+                            <div className="font-semibold text-green-800 mb-2 flex items-center">
+                                <span>{generationResult.message}</span>
+                                {redirecting && (
+                                    <span className="ml-2">
+                                        <LoadingSpinner size="w-4 h-4 inline" />
+                                    </span>
+                                )}
+                            </div>
                             {generationResult.story && (
                                 <div className="mt-2 p-3 bg-white border rounded max-h-96 overflow-y-auto">
                                     <h4 className="text-md font-semibold mb-2 text-gray-800">Generated Story:</h4>
@@ -335,6 +378,18 @@ export default function GenerateClientPage({
                                     <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
                                         <p>{generationResult.story}</p>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Only show the button if not already redirecting */}
+                            {isGenerated && !redirecting && (
+                                <div className="mt-4 text-center">
+                                    <Link
+                                        href={`/story/${uploadId}`}
+                                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                                    >
+                                        View Your Story Now
+                                    </Link>
                                 </div>
                             )}
                         </div>
