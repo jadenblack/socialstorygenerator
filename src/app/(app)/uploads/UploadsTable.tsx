@@ -66,49 +66,59 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                    {uploads.map((upload, index) => (
-                        <React.Fragment key={upload._id}>
-                            <tr key={upload._id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{upload.conversationTitle}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.participantCount}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.messageCount.toLocaleString()}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTableDate(upload.createdAt)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => handleToggle(index, upload.data)}
-                                        className="text-indigo-600 hover:text-indigo-900 focus:outline-none mr-4"
-                                        aria-expanded={openIndex === index}
-                                    >
-                                        {openIndex === index ? 'Hide' : 'Details'}
-                                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 inline-block ml-1 transition-transform ${openIndex === index ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <Link href={`/generate/${upload._id}`} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4! rounded no-style">
-                                        Create Story
-                                    </Link>
-                                </td>
-                            </tr>
-                            {openIndex === index && (
-                                <tr key={`${upload._id}-details`}>
-                                    <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                                        {isLoadingStats ? (
-                                            <div className="flex justify-center items-center p-4">
-                                                <LoadingSpinner size="w-6 h-6" />
-                                                <span className="ml-2 text-sm text-gray-600">Loading stats...</span>
-                                            </div>
-                                        ) : detailedStats ? (
-                                            <StatsDisplay stats={detailedStats} />
-                                        ) : (
-                                            <p className="text-center text-red-600">Could not load stats for this upload.</p>
-                                        )}
+                    {uploads.map((upload, index) => {
+                        // Determine if sentiment analysis exists and is populated
+                        const hasSentimentData = upload.sentimentAnalysisResult && upload.sentimentAnalysisResult.messages.length > 0;
+                        const buttonText = hasSentimentData ? 'View Story' : 'Create Story';
+                        const buttonLink = hasSentimentData ? `/story/${upload._id}` : `/generate/${upload._id}`;
+                        const buttonClass = hasSentimentData
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded no-style' // Style for 'View Story'
+                            : 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded no-style'; // Style for 'Create Story'
+
+                        return (
+                            <React.Fragment key={upload._id}>
+                                <tr key={`${upload._id}-row`}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{upload.conversationTitle}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.participantCount}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.messageCount.toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTableDate(upload.createdAt)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => handleToggle(index, upload.data)}
+                                            className="text-indigo-600 hover:text-indigo-900 focus:outline-none mr-4"
+                                            aria-expanded={openIndex === index}
+                                        >
+                                            {openIndex === index ? 'Hide' : 'Details'}
+                                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 inline-block ml-1 transition-transform ${openIndex === index ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <Link href={buttonLink} className={buttonClass}>
+                                            {buttonText}
+                                        </Link>
                                     </td>
                                 </tr>
-                            )}
-                        </React.Fragment>
-                    ))}
+                                {openIndex === index && (
+                                    <tr key={`${upload._id}-details`}>
+                                        <td colSpan={6} className="px-6 py-4 bg-gray-50">
+                                            {isLoadingStats ? (
+                                                <div className="flex justify-center items-center p-4">
+                                                    <LoadingSpinner size="w-6 h-6" />
+                                                    <span className="ml-2 text-sm text-gray-600">Loading stats...</span>
+                                                </div>
+                                            ) : detailedStats ? (
+                                                <StatsDisplay stats={detailedStats} />
+                                            ) : (
+                                                <p className="text-center text-red-600">Could not load stats for this upload.</p>
+                                            )}
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

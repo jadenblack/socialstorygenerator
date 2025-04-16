@@ -3,6 +3,7 @@
 import { connectToDatabase } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import { Root } from '@/lib/instagram-models'; // Import Root type if data field needs typing
+import { SentimentAnalysisResult } from '@/lib/sentimentAnalysis'; // Import SentimentAnalysisResult
 
 // Define the structure of the returned upload document
 export type UserUpload = {
@@ -12,6 +13,7 @@ export type UserUpload = {
     messageCount: number;
     createdAt: Date;
     data: Root; // The parsed JSON data
+    sentimentAnalysisResult?: SentimentAnalysisResult; // Add the optional field
 };
 
 type GetUploadsResult = {
@@ -50,7 +52,8 @@ export async function getUploadsAction(userId: string): Promise<GetUploadsResult
                     participantCount: 1,
                     messageCount: 1,
                     createdAt: 1,
-                    data: 1 // Include data needed for the stats dropdown
+                    data: 1, // Include data needed for the stats dropdown
+                    sentimentAnalysisResult: 1 // Include the new field in the projection
                 },
                 sort: { createdAt: -1 } // Sort by newest first
             }
@@ -61,7 +64,8 @@ export async function getUploadsAction(userId: string): Promise<GetUploadsResult
             ...upload,
             _id: upload._id.toString(),
             // Ensure data is included if projected
-            data: upload.data as Root // Cast data to the correct type
+            data: upload.data as Root, // Cast data to the correct type
+            sentimentAnalysisResult: upload.sentimentAnalysisResult // Include the new field in serialization
         })) as UserUpload[];
 
         return { success: true, uploads: serializedUploads };

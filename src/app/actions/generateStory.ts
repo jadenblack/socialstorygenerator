@@ -1,11 +1,13 @@
 'use server';
 
 import { z } from 'zod';
+import { ObjectId } from 'mongodb'; // Import ObjectId
+import { connectToDatabase } from '@/lib/db'; // Import db connection
 import { getUploadByIdAction } from './getUploadById'; // To fetch the full data
 import { shouldSkip } from '@/lib/sentimentAnalysis'; // Import for server-side filtering
-import { cleanContent } from '@/lib/sentimentAnalysis'; // Also import cleanContent if needed
 import { Message } from '@/lib/instagram-models';
 import { GenerateStoryResult } from '@/lib/apiTypes';
+import { analyzeChatSentiment } from '@/lib/sentimentAnalysis';
 
 // Define the expected input schema using Zod for validation
 const GenerateStoryInputSchema = z.object({
@@ -73,23 +75,36 @@ export async function generateStoryAction(input: GenerateStoryInput): Promise<Ge
             return { success: false, message: "No messages match the selected filters after applying all rules.", data: { story: "", filteredMessageCount: 0 } };
         }
 
-        // 3. Prepare messages for LLM (Example: clean and format)
-        const preparedMessages = finalFilteredMessages.map(msg => ({
-            sender: msg.sender_name,
-            timestamp: new Date(msg.timestamp_ms).toISOString(),
-            content: cleanContent(msg.content || '') // Use cleanContent
-        }));
+        const data = uploadResult.upload.data;
+        data.messages = finalFilteredMessages;
+        const sentimentResult = await analyzeChatSentiment(data);
 
-        console.log(`Prepared ${preparedMessages.length} messages for LLM.`);
-        // console.log("Sample prepared message:", preparedMessages[0]);
+        if (sentimentResult) {
+            try {
+                const { db } = await connectToDatabase();
+                const uploadsCollection = db.collection('uploads');
+                const updateResult = await uploadsCollection.updateOne(
+                    { _id: new ObjectId(uploadId) },
+                    { $set: { sentimentAnalysisResult: sentimentResult } }
+                );
 
-        // --- Placeholder for actual story generation logic --- 
-        // 4. Call the LLM with preparedMessages
-        // 5. Handle the LLM response
-        // --- End Placeholder ---
-
-        // Simulate success for now
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate async work
+                if (updateResult.modifiedCount === 0 && updateResult.matchedCount === 1) {
+                    console.log(`Sentiment analysis result for upload ${uploadId} already exists or is the same.`);
+                } else if (updateResult.matchedCount === 0) {
+                    console.warn(`Upload with ID ${uploadId} not found for updating sentiment analysis.`);
+                    // Optionally return an error or specific message here
+                } else {
+                    console.log(`Successfully saved sentiment analysis result for upload ${uploadId}.`);
+                }
+            } catch (dbError) {
+                console.error("Error saving sentiment analysis result to database:", dbError);
+                // Decide if this should be a fatal error for the action
+                // For now, we'll log it but continue to return the story placeholder
+            }
+        } else {
+            console.warn(`Sentiment analysis failed for upload ${uploadId}, result not saved.`);
+            // Optionally return a specific error message if sentiment analysis failure should stop the process
+        }
 
         return {
             success: true,

@@ -295,7 +295,7 @@ export async function analyzeChatSentiment(chatData: Root): Promise<SentimentAna
             return true;
         })
         .map((msg, index) => {
-            const messageId = `msg${index}`;
+            const messageId = msg.timestamp_ms;
             const cleanedContent = cleanContent(msg.content as string);
 
             if (!cleanedContent) {
