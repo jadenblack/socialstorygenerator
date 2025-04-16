@@ -3,7 +3,6 @@
 import { getUploadByIdAction } from '@/app/actions/getUploadById';
 import StoryClientPage from './StoryClientPage'; // Import the client component
 import { notFound, redirect } from 'next/navigation';
-import { UserUpload } from '@/app/actions/getUploads';
 
 interface StoryPageParams {
     params: Promise<{ // No promise here, Next.js resolves it

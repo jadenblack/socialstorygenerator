@@ -269,7 +269,7 @@ export function shouldSkip(content: string): boolean {
 // Helper function to clean message content
 export function cleanContent(text: string): string {
     // Remove URLs
-    let cleaned = text.replace(/https?:\/\/\S+/g, '');
+    const cleaned = text.replace(/https?:\/\/\S+/g, '');
     // Additional cleaning can be added here if needed
     return cleaned.trim();
 }
@@ -295,7 +295,7 @@ export async function analyzeChatSentiment(chatData: Root): Promise<SentimentAna
             }
             return true;
         })
-        .map((msg, index) => {
+        .map((msg) => {
             const messageId = msg.timestamp_ms;
             const cleanedContent = cleanContent(msg.content as string);
 

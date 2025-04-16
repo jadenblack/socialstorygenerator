@@ -11,7 +11,7 @@ function fixInstagramEncoding(text: string): string {
     try {
         // Stage 1: Unescape JSON \uXXXX sequences to get the literal characters.
         // This mimics part of what raw_unicode_escape does.
-        let unescapedText = text.replace(/\\u([a-fA-F0-9]{4})/g, (match, grp) => {
+        const unescapedText = text.replace(/\\u([a-fA-F0-9]{4})/g, (match, grp) => {
             return String.fromCharCode(parseInt(grp, 16));
         });
 

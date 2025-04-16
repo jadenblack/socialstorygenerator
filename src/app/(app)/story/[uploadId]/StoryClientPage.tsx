@@ -69,8 +69,8 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
     const { participants, messagesWithSentiment: initialMessages, conversationTitle } = initialData;
     const [impersonatedUser, setImpersonatedUser] = useState<string | null>(null);
     const [includeVulgar, setIncludeVulgar] = useState<boolean>(true);
-    const [neutralImportanceThreshold, setNeutralImportanceThreshold] = useState<number>(7);
-    const [nonNeutralImportanceThreshold, setNonNeutralImportanceThreshold] = useState<number>(5);
+    const [neutralImportanceThreshold] = useState<number>(7);
+    const [nonNeutralImportanceThreshold] = useState<number>(5);
     const [displayedMessages, setDisplayedMessages] = useState<MessageWithSentiment[]>([]);
     const [currentMessageIndex, setCurrentMessageIndex] = useState<number>(0);
     const [isPaused, setIsPaused] = useState<boolean>(true);

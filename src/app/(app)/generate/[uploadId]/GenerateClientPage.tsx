@@ -7,7 +7,6 @@ import { Message } from '@/lib/instagram-models';
 import * as Slider from '@radix-ui/react-slider';
 import { GenerateStoryResult } from '@/lib/apiTypes';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 // Basic date formatting to YYYY-MM-DD for input[type=date]
 const formatDateForInput = (date: Date): string => {
@@ -53,7 +52,6 @@ export default function GenerateClientPage({
     uploadId,
     generateStory
 }: GenerateClientPageProps) {
-    const router = useRouter();
     // Removed uploadData state, using prop directly
     // const [uploadData, setUploadData] = useState<UserUpload | null>(null);
     const [generationResult, setGenerationResult] = useState<{ message: string; story?: string } | null>(null);
@@ -124,7 +122,6 @@ export default function GenerateClientPage({
         const startTimestamp = startDate ? new Date(startDate).getTime() : 0;
         // Add time to include the entire end day
         const endTimestamp = endDate ? new Date(endDate).getTime() + (24 * 60 * 60 * 1000 - 1) : Infinity;
-        const selectedSet = new Set(selectedParticipants); // Use Set for faster lookups
 
         return initialUploadData.data.messages.filter((msg: Message) => {
             // Basic validation for essential message properties
@@ -138,7 +135,7 @@ export default function GenerateClientPage({
             // For word counts per user, we want all messages within date range regardless of selection
             return true;
         });
-    }, [initialUploadData, startDate, endDate]); // Remove selectedParticipants dependency since we want all messages
+    }, [initialUploadData, startDate, endDate, selectedParticipants]); // Remove selectedParticipants dependency since we want all messages
 
     // Calculate word counts per participant within the date range
     const participantWordCounts = useMemo(() => {
