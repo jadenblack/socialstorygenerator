@@ -306,6 +306,7 @@ export async function analyzeChatSentiment(chatData: Root): Promise<SentimentAna
             return `${messageId}\nSender: ${msg.sender_name}\nTimestamp: ${new Date(msg.timestamp_ms).toISOString()}\nContent: ${cleanedContent}`;
         })
         .filter((formattedMsg): formattedMsg is string => formattedMsg !== null)
+        .reverse()
         .join('\n\n');
 
     if (!messagesToAnalyze) {

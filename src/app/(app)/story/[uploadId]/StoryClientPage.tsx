@@ -101,6 +101,7 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
 
     // Effect to handle message display timing
     useEffect(() => {
+        // Clear any previous timeout
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -108,23 +109,52 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
 
         // Only proceed if not paused, a user is selected, and there are more messages
         if (!isPaused && impersonatedUser && currentMessageIndex < filteredMessages.length) {
-            const message = filteredMessages[currentMessageIndex];
-            const wordCount = countWords(message.content);
-            const delay = Math.max(500, 500 * wordCount); // Slower delay: Minimum 500ms, 500ms per word
+            const currentMessage = filteredMessages[currentMessageIndex];
 
-            timeoutRef.current = setTimeout(() => {
-                // Add message only if it's not already displayed (e.g., after slider jump)
-                setDisplayedMessages(prev => {
-                    // Avoid duplicates if slider moved index
-                    if (prev.length === currentMessageIndex) {
-                        return [...prev, message];
+            // --- Step 1: Add the current message immediately (if not already present) ---
+            // This ensures the message appears before its associated delay starts.
+            setDisplayedMessages(prev => {
+                // Check using a more reliable unique key if possible (assuming timestamp_ms is unique enough here)
+                const alreadyExists = prev.some(m => m.timestamp_ms === currentMessage.timestamp_ms);
+                if (!alreadyExists) {
+                    // Handle slider jumps correctly: ensure all messages up to current are shown
+                    if (prev.length < currentMessageIndex) {
+                        console.log(`Slider jump detected? Displaying up to index ${currentMessageIndex}`);
+                        return filteredMessages.slice(0, currentMessageIndex + 1);
+                    } else if (prev.length === currentMessageIndex) {
+                        // Standard playback: add the next message
+                        return [...prev, currentMessage];
                     }
-                    return prev; // Should be handled by slider change already
-                });
-                // Move to the next message index *after* the delay
-                setCurrentMessageIndex(prev => prev + 1);
+                }
+                // If message already exists or state is ahead, don't modify
+                return prev;
+            });
 
-            }, delay);
+            // --- Step 2: Calculate delay based on the message JUST added ---
+            const wordCount = countWords(currentMessage.content);
+            // Base delay: 500ms minimum + 200ms per word
+            const minDelay = currentMessage.sentiment !== 'Neutral' ? 1750 : 500;
+            const baseDelay = Math.max(minDelay, 200 * wordCount);
+
+            // Calculate sentiment multiplier
+            let sentimentMultiplier = 1.0;
+            if (currentMessage.sentiment !== 'Neutral') {
+                // Start with double duration (extra = 1.0)
+                // Decrease towards 1.2x duration (extra = 0.2) by 50 words
+                const reductionFactor = Math.min(1.0, wordCount / 50); // Cap reduction at 50 words
+                const extraMultiplier = Math.max(0.2, 1.0 - reductionFactor * 0.8);
+                sentimentMultiplier = 1.0 + extraMultiplier;
+            }
+
+            // Final delay incorporates sentiment multiplier
+            const finalDelay = baseDelay * sentimentMultiplier;
+
+            // --- Step 3: Schedule ONLY the index increment for the *next* message ---
+            // The delay now happens *after* the current message is displayed.
+            timeoutRef.current = setTimeout(() => {
+                // Move to the next message index after the delay
+                setCurrentMessageIndex(prev => prev + 1);
+            }, finalDelay); // Use finalDelay here
         }
 
         // Cleanup function
@@ -133,6 +163,7 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                 clearTimeout(timeoutRef.current);
             }
         };
+        // Depend on isPaused, impersonatedUser, currentMessageIndex, and filteredMessages
     }, [isPaused, impersonatedUser, currentMessageIndex, filteredMessages]);
 
     // Effect to scroll to the bottom when new messages are added
@@ -294,7 +325,7 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                                         </p>
                                         {msg.content && <p className="text-sm mb-1 text-gray-800">{msg.content}</p>}
                                         {/* --- Sentiment Text Added --- */}
-                                        <p className="text-xs mt-1 text-gray-600 opacity-80">Sentiment: {msg.sentiment}</p>
+                                        <p className="text-xs mt-1 text-gray-600 opacity-80">Sentiment: {msg.sentiment} - {msg.importance}</p>
                                         <div className="flex justify-between items-center mt-1">
                                             {/* --- Updated Timestamp Format --- */}
                                             <span className="text-xs text-gray-500 italic">{formatTimestamp(msg.timestamp_ms)}</span>
