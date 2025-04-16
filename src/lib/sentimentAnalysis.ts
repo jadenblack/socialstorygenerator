@@ -1,9 +1,9 @@
 import {
-    GoogleGenAI,
-    HarmBlockThreshold,
-    HarmCategory,
-    SafetySetting,
-    Type,
+  GoogleGenAI,
+  HarmBlockThreshold,
+  HarmCategory,
+  SafetySetting,
+  Type,
 } from '@google/genai';
 import type { Root, Message } from './instagram-models';
 
@@ -177,101 +177,101 @@ Example Output 8:
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set or loaded correctly.");
+  throw new Error("GEMINI_API_KEY is not set or loaded correctly.");
 }
 const ai = new GoogleGenAI({ apiKey }); // Correct initialization with object
 
 const safetySettings: SafetySetting[] = [
-    {
-        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold: HarmBlockThreshold.BLOCK_NONE,
-    },
-    {
-        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold: HarmBlockThreshold.BLOCK_NONE,
-    },
-    {
-        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold: HarmBlockThreshold.BLOCK_NONE,
-    },
-    {
-        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold: HarmBlockThreshold.BLOCK_NONE,
-    },
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
 ];
 
 const config = {
-    safetySettings,
-    responseMimeType: 'application/json',
-    responseSchema: {
-        type: Type.OBJECT,
-        required: ["messages"],
-        properties: {
-            messages: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    required: ["id", "sentiment", "importance", "sentiment_justification", "importance_justification", "vulgar"],
-                    properties: {
-                        id: {
-                            type: Type.STRING,
-                        },
-                        sentiment: {
-                            type: Type.STRING,
-                            enum: ["Awkwardness", "Romantic", "Guilt", "Fear", "Neutral", "Anger", "Sympathy", "Sadness", "Sarcasm", "Joy", "Surprise"],
-                        },
-                        importance: {
-                            type: Type.INTEGER,
-                        },
-                        sentiment_justification: {
-                            type: Type.STRING,
-                        },
-                        importance_justification: {
-                            type: Type.STRING,
-                        },
-                        vulgar: {
-                            type: Type.BOOLEAN,
-                        }
-                    },
-                },
+  safetySettings,
+  responseMimeType: 'application/json',
+  responseSchema: {
+    type: Type.OBJECT,
+    required: ["messages"],
+    properties: {
+      messages: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          required: ["id", "sentiment", "importance", "sentiment_justification", "importance_justification", "vulgar"],
+          properties: {
+            id: {
+              type: Type.STRING,
             },
+            sentiment: {
+              type: Type.STRING,
+              enum: ["Awkwardness", "Romantic", "Guilt", "Fear", "Neutral", "Anger", "Sympathy", "Sadness", "Sarcasm", "Joy", "Surprise"],
+            },
+            importance: {
+              type: Type.INTEGER,
+            },
+            sentiment_justification: {
+              type: Type.STRING,
+            },
+            importance_justification: {
+              type: Type.STRING,
+            },
+            vulgar: {
+              type: Type.BOOLEAN,
+            }
+          },
         },
+      },
     },
+  },
 };
 const model = 'gemini-1.5-flash'; // Changed model
 
 // Define the structure for the sentiment analysis result
 export interface SentimentAnalysisMessage {
-    id: string;
-    sentiment: string;
-    importance: number;
-    sentiment_justification: string;
-    importance_justification: string;
-    vulgar: boolean;
+  id: string;
+  sentiment: string;
+  importance: number;
+  sentiment_justification: string;
+  importance_justification: string;
+  vulgar: boolean;
 }
 
 export interface SentimentAnalysisResult {
-    messages: SentimentAnalysisMessage[];
+  messages: SentimentAnalysisMessage[];
 }
 // Helper function to check if a message should be skipped
 export function shouldSkip(content: string): boolean {
-    const lowerContent = content.toLowerCase();
-    const reactionRegex = /reacted .+ to your message/i;
-    return (
-        lowerContent.includes("liked a message") ||
-        lowerContent.includes("sent an attachment") ||
-        lowerContent.includes("sent a photo") || // Added common variants
-        lowerContent.includes("sent a video") ||
-        reactionRegex.test(content)
-    );
+  const lowerContent = content.toLowerCase();
+  const reactionRegex = /reacted .+ to your message/i;
+  return (
+    lowerContent.includes("liked a message") ||
+    lowerContent.includes("sent an attachment") ||
+    lowerContent.includes("sent a photo") || // Added common variants
+    lowerContent.includes("sent a video") ||
+    reactionRegex.test(content)
+  );
 }
 
 // Helper function to clean message content
 export function cleanContent(text: string): string {
-    // Remove URLs
-    const cleaned = text.replace(/https?:\/\/\S+/g, '');
-    // Additional cleaning can be added here if needed
-    return cleaned.trim();
+  // Remove URLs
+  const cleaned = text.replace(/https?:\/\/\S+/g, '');
+  // Additional cleaning can be added here if needed
+  return cleaned.trim();
 }
 
 /**
@@ -280,94 +280,121 @@ export function cleanContent(text: string): string {
  * @returns A Promise resolving to the SentimentAnalysisResult or null if an error occurs.
  */
 export async function analyzeChatSentiment(chatData: Root): Promise<SentimentAnalysisResult | null> {
-    const participants = chatData.participants.map(p => p.name).join(', ');
-    const chatDetails = `Chat Title: ${chatData.title}\nParticipants: ${participants}\nThread Path: ${chatData.thread_path}`;
+  const participants = chatData.participants.map(p => p.name).join(', ');
+  const chatDetails = `Chat Title: ${chatData.title}\nParticipants: ${participants}\nThread Path: ${chatData.thread_path}`;
 
-    const messagesToAnalyze = chatData.messages
-        .filter((msg: Message): msg is Message & { content: string } => {
-            // Ensure content exists and is not just whitespace initially
-            if (typeof msg.content !== 'string' || !msg.content.trim()) {
-                return false;
-            }
-            // Skip messages based on content keywords
-            if (shouldSkip(msg.content)) {
-                return false;
-            }
-            return true;
-        })
-        .map((msg) => {
-            const messageId = msg.timestamp_ms;
-            const cleanedContent = cleanContent(msg.content as string);
+  const validMessages = chatData.messages
+    .filter((msg: Message): msg is Message & { content: string } => {
+      // Ensure content exists and is not just whitespace initially
+      if (typeof msg.content !== 'string' || !msg.content.trim()) {
+        return false;
+      }
+      // Skip messages based on content keywords
+      if (shouldSkip(msg.content)) {
+        return false;
+      }
+      return true;
+    })
+    .map((msg) => {
+      const messageId = msg.timestamp_ms;
+      const cleanedContent = cleanContent(msg.content as string);
 
-            if (!cleanedContent) {
-                return null;
-            }
+      if (!cleanedContent) {
+        return null;
+      }
 
-            return `${messageId}\nSender: ${msg.sender_name}\nTimestamp: ${new Date(msg.timestamp_ms).toISOString()}\nContent: ${cleanedContent}`;
-        })
-        .filter((formattedMsg): formattedMsg is string => formattedMsg !== null)
-        .reverse()
-        .join('\n\n');
+      return {
+        formattedMessage: `${messageId}\nSender: ${msg.sender_name}\nTimestamp: ${new Date(msg.timestamp_ms).toISOString()}\nContent: ${cleanedContent}`,
+        id: messageId.toString()
+      };
+    })
+    .filter((formattedMsg): formattedMsg is { formattedMessage: string, id: string } => formattedMsg !== null)
+    .reverse(); // Reverse to maintain chronological order
 
-    if (!messagesToAnalyze) {
-        console.log("No valid text messages found to analyze after cleaning and filtering.");
-        return { messages: [] };
-    }
+  if (validMessages.length === 0) {
+    console.log("No valid text messages found to analyze after cleaning and filtering.");
+    return { messages: [] };
+  }
+
+  // Process messages in batches of 50
+  const batchSize = 50;
+  const batches = [];
+  for (let i = 0; i < validMessages.length; i += batchSize) {
+    batches.push(validMessages.slice(i, i + batchSize));
+  }
+
+  console.log(`Processing ${validMessages.length} messages in ${batches.length} batches of max ${batchSize}`);
+
+  // Analyze each batch
+  const allResults: SentimentAnalysisMessage[] = [];
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    console.log(`Processing batch ${i + 1}/${batches.length} with ${batch.length} messages`);
+
+    const messagesToAnalyze = batch.map(item => item.formattedMessage).join('\n\n');
 
     const contents = [
-        {
-            role: 'user',
-            parts: [
-                {
-                    text: prompt, // The main instruction prompt
-                },
-                {
-                    text: `Chat Details:\n${chatDetails}`,
-                },
-                {
-                    text: `List of Messages to Analyze:\n${messagesToAnalyze}`
-                }
-            ],
-        },
+      {
+        role: 'user',
+        parts: [
+          {
+            text: prompt, // The main instruction prompt
+          },
+          {
+            text: `Chat Details:\n${chatDetails}`,
+          },
+          {
+            text: `List of Messages to Analyze (Batch ${i + 1}/${batches.length}):\n${messagesToAnalyze}`
+          }
+        ],
+      },
     ];
 
     try {
-        // Match original call structure more closely
-        const response = await ai.models.generateContentStream({
-            model,
-            config,
-            contents,
-        });
+      // Match original call structure more closely
+      const response = await ai.models.generateContentStream({
+        model,
+        config,
+        contents,
+      });
 
-        let aggregatedResponse = '';
-        // Iterate directly over the response stream
-        for await (const chunk of response) {
-            // Access chunk.text directly as it's a property
-            if (chunk && typeof chunk.text === 'string') {
-                aggregatedResponse += chunk.text;
-            } else {
-                // Handle unexpected chunk format if necessary
-                console.warn("Unexpected chunk format in stream:", chunk);
-            }
+      let aggregatedResponse = '';
+      // Iterate directly over the response stream
+      for await (const chunk of response) {
+        // Access chunk.text directly as it's a property
+        if (chunk && typeof chunk.text === 'string') {
+          aggregatedResponse += chunk.text;
+        } else {
+          // Handle unexpected chunk format if necessary
+          console.warn("Unexpected chunk format in stream:", chunk);
         }
+      }
 
-        // Ensure aggregatedResponse is not empty before parsing
-        if (!aggregatedResponse) {
-            console.error("Received empty response from API stream.");
-            return null;
+      // Ensure aggregatedResponse is not empty before parsing
+      if (!aggregatedResponse) {
+        console.error(`Received empty response from API stream for batch ${i + 1}.`);
+        continue; // Skip this batch but continue with others
+      }
+
+      try {
+        const result = JSON.parse(aggregatedResponse) as SentimentAnalysisResult;
+        // Add the batch results to the combined results
+        if (result && result.messages && Array.isArray(result.messages)) {
+          allResults.push(...result.messages);
+          console.log(`Successfully processed ${result.messages.length} messages in batch ${i + 1}`);
         }
-
-        try {
-            const result = JSON.parse(aggregatedResponse) as SentimentAnalysisResult;
-            return result;
-        } catch (parseError) {
-            console.error("Error parsing aggregated JSON response:", parseError);
-            console.error("Aggregated response string was:", aggregatedResponse); // Log the problematic string
-            return null;
-        }
-
+      } catch (parseError) {
+        console.error(`Error parsing JSON response for batch ${i + 1}:`, parseError);
+        console.error("Aggregated response string was:", aggregatedResponse); // Log the problematic string
+        // Continue with other batches
+      }
     } catch (error) {
-        console.error("Error during sentiment analysis API call:", error);
-        return null; // Indicate failure
+      console.error(`Error during sentiment analysis API call for batch ${i + 1}:`, error);
+      // Continue with other batches
     }
+  }
+
+  // Return combined results
+  return { messages: allResults };
 }
