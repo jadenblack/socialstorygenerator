@@ -266,8 +266,6 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                                                 </motion.div>
                                             )}
                                         </div>
-                                        {/* Optional: Display importance for debugging */}
-                                        {/* <p className="text-xs mt-1 text-gray-400">Importance: {msg.importance}</p> */}
                                     </div>
                                 </motion.div>
                             </React.Fragment>
