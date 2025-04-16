@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Participant, Message as OriginalMessage, Reaction } from '@/lib/instagram-models';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Participant, Message as OriginalMessage } from '@/lib/instagram-models';
 import { SentimentAnalysisMessage } from '@/lib/sentimentAnalysis';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion'; // For animations
@@ -47,13 +47,26 @@ const stringToHslColor = (str: string, s: number = 70, l: number = 50): string =
     return `hsl(${h}, ${s}%, ${l}%)`;
 };
 
-// Format timestamp (e.g., HH:MM:SS or relative)
+// Format timestamp to include date and time
 const formatTimestamp = (timestamp_ms: number): string => {
-    return new Date(timestamp_ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(timestamp_ms).toLocaleString([], {
+        year: '2-digit',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
+// Helper to format date for separator
+const formatDateSeparator = (timestamp_ms: number): string => {
+    return new Date(timestamp_ms).toLocaleDateString([], {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
 };
 
 export default function StoryClientPage({ initialData }: StoryClientPageProps) {
-    const { participants, messagesWithSentiment, conversationTitle } = initialData;
+    const { participants, messagesWithSentiment: initialMessages, conversationTitle } = initialData;
     const [impersonatedUser, setImpersonatedUser] = useState<string | null>(null);
     const [includeVulgar, setIncludeVulgar] = useState<boolean>(true);
     const [displayedMessages, setDisplayedMessages] = useState<MessageWithSentiment[]>([]);
@@ -71,14 +84,20 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
         return colors;
     }, [participants]);
 
-    // Filter messages based on vulgarity setting
+    // Sort initial messages chronologically and filter based on vulgarity setting
+    const sortedMessages = useMemo(() => {
+        // Ensure messages are sorted by timestamp ascending
+        return [...initialMessages].sort((a, b) => a.timestamp_ms - b.timestamp_ms);
+    }, [initialMessages]);
+
     const filteredMessages = useMemo(() => {
+        const baseMessages = sortedMessages; // Use the sorted messages
         if (includeVulgar) {
-            return messagesWithSentiment;
+            return baseMessages;
         } else {
-            return messagesWithSentiment.filter(msg => !msg.vulgar);
+            return baseMessages.filter(msg => !msg.vulgar);
         }
-    }, [messagesWithSentiment, includeVulgar]);
+    }, [sortedMessages, includeVulgar]); // Depend on sortedMessages
 
     // Effect to handle message display timing
     useEffect(() => {
@@ -194,47 +213,64 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                 <AnimatePresence initial={false}>
                     {impersonatedUser && displayedMessages.map((msg, index) => {
                         const isImpersonated = msg.sender_name === impersonatedUser;
-                        const alignment = isImpersonated ? 'justify-start' : 'justify-end';
+                        // --- Alignment Reversed ---
+                        const alignment = isImpersonated ? 'justify-end' : 'justify-start';
                         const sentimentClass = sentimentToClassMap[msg.sentiment] || sentimentToClassMap.default;
                         const senderColor = participantColors[msg.sender_name] || '#000000'; // Default black
 
+                        // Check if the date changed from the previous message
+                        const prevMsg = index > 0 ? displayedMessages[index - 1] : null;
+                        const showDateSeparator = !prevMsg || new Date(msg.timestamp_ms).toDateString() !== new Date(prevMsg.timestamp_ms).toDateString();
+
                         return (
-                            <motion.div
-                                key={msg.id || msg.timestamp_ms} // Use unique key
-                                className={`flex ${alignment}`}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <div className={`p-3 rounded-lg max-w-xs sm:max-w-md md:max-w-lg shadow-md message-bubble ${sentimentClass}`}>
-                                    <p
-                                        className="font-semibold text-sm mb-1"
-                                        style={{ color: senderColor }}
-                                    >
-                                        {msg.sender_name}
-                                    </p>
-                                    {msg.content && <p className="text-sm mb-1 text-gray-800">{msg.content}</p>}
-                                    <div className="flex justify-between items-center mt-1">
-                                        <span className="text-xs text-gray-500 italic">{formatTimestamp(msg.timestamp_ms)}</span>
-                                        {/* Animate Reactions */}
-                                        {msg.reactions && msg.reactions.length > 0 && (
-                                            <motion.div
-                                                className="flex space-x-1"
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                transition={{ delay: 0.5, type: "spring", stiffness: 300, damping: 20 }}
-                                            >
-                                                {msg.reactions.map((r, i) => (
-                                                    <span key={i} className="text-xs px-1.5 py-0.5 bg-gray-200 rounded-full shadow-sm">{r.reaction}</span>
-                                                ))}
-                                            </motion.div>
-                                        )}
+                            <React.Fragment key={msg.id || msg.timestamp_ms}> {/* Use React.Fragment for keys */}
+                                {/* --- Date Separator --- */}
+                                {showDateSeparator && (
+                                    <div className="text-center text-xs text-gray-500 py-2 my-2 border-t border-b border-gray-200">
+                                        {formatDateSeparator(msg.timestamp_ms)}
                                     </div>
-                                    {/* Optional: Display sentiment/importance for debugging */}
-                                    {/* <p className="text-xs mt-1 text-gray-400">Sentiment: {msg.sentiment} | Importance: {msg.importance}</p> */}
-                                </div>
-                            </motion.div>
+                                )}
+
+                                <motion.div
+                                    // key is now on the Fragment above
+                                    className={`flex ${alignment}`}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <div className={`p-3 rounded-lg max-w-xs sm:max-w-md md:max-w-lg shadow-md message-bubble ${sentimentClass}`}>
+                                        <p
+                                            className="font-semibold text-sm mb-1"
+                                            style={{ color: senderColor }}
+                                        >
+                                            {msg.sender_name}
+                                        </p>
+                                        {msg.content && <p className="text-sm mb-1 text-gray-800">{msg.content}</p>}
+                                        {/* --- Sentiment Text Added --- */}
+                                        <p className="text-xs mt-1 text-gray-600 opacity-80">Sentiment: {msg.sentiment}</p>
+                                        <div className="flex justify-between items-center mt-1">
+                                            {/* --- Updated Timestamp Format --- */}
+                                            <span className="text-xs text-gray-500 italic">{formatTimestamp(msg.timestamp_ms)}</span>
+                                            {/* Animate Reactions */}
+                                            {msg.reactions && msg.reactions.length > 0 && (
+                                                <motion.div
+                                                    className="flex space-x-1"
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    transition={{ delay: 0.5, type: "spring", stiffness: 300, damping: 20 }}
+                                                >
+                                                    {msg.reactions.map((r, i) => (
+                                                        <span key={i} className="text-xs px-1.5 py-0.5 bg-gray-200 rounded-full shadow-sm">{r.reaction}</span>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </div>
+                                        {/* Optional: Display importance for debugging */}
+                                        {/* <p className="text-xs mt-1 text-gray-400">Importance: {msg.importance}</p> */}
+                                    </div>
+                                </motion.div>
+                            </React.Fragment>
                         );
                     })}
                 </AnimatePresence>
