@@ -174,16 +174,8 @@ Example Output 8:
 }
 `;
 
-// Ensure the API key is loaded (consider using environment variables or a secure config method)
-// Example: import { GEMINI_API_KEY } from '$env/static/private';
-// const apiKey = GEMINI_API_KEY;
-// if (!apiKey) {
-//     throw new Error("GEMINI_API_KEY is not set in environment variables.");
-// }
-// const ai = new GoogleGenAI(apiKey);
 
-// Placeholder for actual API key loading
-const apiKey = process.env.GEMINI_API_KEY || "YOUR_API_KEY_HERE"; // Replace with secure loading
+const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not set or loaded correctly.");
 }
@@ -263,7 +255,7 @@ export interface SentimentAnalysisResult {
 }
 
 // Helper function to check if a message should be skipped
-function shouldSkip(content: string): boolean {
+export function shouldSkip(content: string): boolean {
     const lowerContent = content.toLowerCase();
     return (
         lowerContent.includes("liked a message") ||
@@ -274,7 +266,7 @@ function shouldSkip(content: string): boolean {
 }
 
 // Helper function to clean message content
-function cleanContent(text: string): string {
+export function cleanContent(text: string): string {
     // Remove URLs
     let cleaned = text.replace(/https?:\/\/\S+/g, '');
     // Additional cleaning can be added here if needed

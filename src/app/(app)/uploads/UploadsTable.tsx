@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { useState } from 'react';
+import Link from 'next/link';
 import { UserUpload } from '@/app/actions/getUploads';
 import { processInstagramData, InstagramStats } from '@/lib/processors';
 import StatsDisplay from '@/app/components/StatsDisplay';
@@ -59,6 +60,9 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
                         <th scope="col" className="relative px-6 py-3">
                             <span className="sr-only">Details</span>
                         </th>
+                        <th scope="col" className="relative px-6 py-3">
+                            <span className="sr-only">Actions</span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -72,21 +76,24 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button
                                         onClick={() => handleToggle(index, upload.data)}
-                                        className="text-indigo-600 hover:text-indigo-900 focus:outline-none"
+                                        className="text-indigo-600 hover:text-indigo-900 focus:outline-none mr-4"
                                         aria-expanded={openIndex === index}
                                     >
                                         {openIndex === index ? 'Hide' : 'Details'}
-                                        {/* Optional: Add Chevron Icon */}
                                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 inline-block ml-1 transition-transform ${openIndex === index ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </button>
                                 </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <Link href={`/generate/${upload._id}`} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4! rounded no-style">
+                                        Create Story
+                                    </Link>
+                                </td>
                             </tr>
-                            {/* Dropdown Row */}
                             {openIndex === index && (
                                 <tr key={`${upload._id}-details`}>
-                                    <td colSpan={5} className="px-6 py-4 bg-gray-50">
+                                    <td colSpan={6} className="px-6 py-4 bg-gray-50">
                                         {isLoadingStats ? (
                                             <div className="flex justify-center items-center p-4">
                                                 <LoadingSpinner size="w-6 h-6" />

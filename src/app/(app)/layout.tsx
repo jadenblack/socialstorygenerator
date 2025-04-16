@@ -68,7 +68,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-grow flex justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <main className="flex-grow flex justify-center px-4 sm:px-6 lg:px-8">
           {children}
         </main>
 
