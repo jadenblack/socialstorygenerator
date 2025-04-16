@@ -71,7 +71,7 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
     const [includeVulgar, setIncludeVulgar] = useState<boolean>(true);
     const [displayedMessages, setDisplayedMessages] = useState<MessageWithSentiment[]>([]);
     const [currentMessageIndex, setCurrentMessageIndex] = useState<number>(0);
-    const [isDisplaying, setIsDisplaying] = useState<boolean>(false);
+    const [isPaused, setIsPaused] = useState<boolean>(true);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const messageContainerRef = useRef<HTMLDivElement>(null); // Ref for scrolling
 
@@ -101,21 +101,29 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
 
     // Effect to handle message display timing
     useEffect(() => {
-        // Clear any existing timeout if settings change or component unmounts
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
 
-        // Only proceed if displaying is active and there are more messages
-        if (isDisplaying && currentMessageIndex < filteredMessages.length) {
+        // Only proceed if not paused, a user is selected, and there are more messages
+        if (!isPaused && impersonatedUser && currentMessageIndex < filteredMessages.length) {
             const message = filteredMessages[currentMessageIndex];
             const wordCount = countWords(message.content);
-            const delay = Math.max(250, 250 * wordCount); // Minimum 250ms delay
+            const delay = Math.max(500, 500 * wordCount); // Slower delay: Minimum 500ms, 500ms per word
 
             timeoutRef.current = setTimeout(() => {
-                setDisplayedMessages(prev => [...prev, message]);
+                // Add message only if it's not already displayed (e.g., after slider jump)
+                setDisplayedMessages(prev => {
+                    // Avoid duplicates if slider moved index
+                    if (prev.length === currentMessageIndex) {
+                        return [...prev, message];
+                    }
+                    return prev; // Should be handled by slider change already
+                });
+                // Move to the next message index *after* the delay
                 setCurrentMessageIndex(prev => prev + 1);
+
             }, delay);
         }
 
@@ -125,7 +133,7 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [isDisplaying, currentMessageIndex, filteredMessages]);
+    }, [isPaused, impersonatedUser, currentMessageIndex, filteredMessages]);
 
     // Effect to scroll to the bottom when new messages are added
     useEffect(() => {
@@ -139,7 +147,8 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
         setImpersonatedUser(selectedUser);
         setDisplayedMessages([]); // Reset displayed messages
         setCurrentMessageIndex(0); // Reset index
-        setIsDisplaying(true);
+        setIsPaused(false); // Start playing immediately
+        if (timeoutRef.current) clearTimeout(timeoutRef.current); // Clear any pending timeout
     };
 
     const handlePerspectiveChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -148,10 +157,11 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
             handleStartStory(selectedUser);
         } else {
             // Stop displaying if placeholder is selected
-            setIsDisplaying(false);
+            setIsPaused(true); // Pause if no user selected
             setImpersonatedUser(null);
             setDisplayedMessages([]);
             setCurrentMessageIndex(0);
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
         }
     };
 
@@ -162,6 +172,42 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
         if (impersonatedUser) {
             handleStartStory(impersonatedUser);
         }
+    };
+
+    // Handler for Pause/Resume button
+    const handlePauseResume = () => {
+        setIsPaused(prev => !prev);
+        // If pausing, clear the timeout
+        if (!isPaused && timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        // If resuming, the useEffect will pick it up
+    };
+
+    // Handler for Slider change
+    const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newIndex = parseInt(event.target.value, 10);
+
+        // Pause playback on manual interaction
+        setIsPaused(true);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+
+        setCurrentMessageIndex(newIndex);
+        // Update displayed messages to reflect the slider position
+        setDisplayedMessages(filteredMessages.slice(0, newIndex)); // Show messages up to the new index
+
+        // Scroll adjustment might be needed here if jumping far
+        requestAnimationFrame(() => {
+            if (messageContainerRef.current) {
+                // Optional: Try to scroll the *new* last message into view if jumping forward
+                // This is complex; a simple scroll to bottom might suffice for now
+                messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+            }
+        });
     };
 
     return (
@@ -203,7 +249,7 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                         <p className="text-gray-500 italic">Select a user perspective to start the story.</p>
                     </div>
                 )}
-                {impersonatedUser && displayedMessages.length === 0 && isDisplaying && (
+                {impersonatedUser && displayedMessages.length === 0 && !isPaused && (
                     <div className="flex justify-center items-center h-full">
                         <LoadingSpinner />
                         <span className="ml-2 text-gray-600">Loading first message...</span>
@@ -276,6 +322,33 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                 {impersonatedUser && currentMessageIndex >= filteredMessages.length && filteredMessages.length > 0 && (
                     <div className="text-center text-gray-500 italic py-4">End of story.</div>
                 )}
+            </div>
+
+            {/* --- Controls Area --- */}
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-sm flex flex-col sm:flex-row items-center gap-4">
+                <button
+                    onClick={handlePauseResume}
+                    disabled={!impersonatedUser} // Disable if no user selected
+                    className={`px-4 py-2 rounded font-semibold text-white transition-colors duration-200 ${!impersonatedUser ? 'bg-gray-400 cursor-not-allowed' : (isPaused ? 'bg-blue-500 hover:bg-blue-600' : 'bg-yellow-500 hover:bg-yellow-600')}`}
+                >
+                    {isPaused ? (currentMessageIndex < filteredMessages.length ? 'Resume' : 'Restart') : 'Pause'}
+                </button>
+                <div className="flex-grow flex items-center gap-2 w-full sm:w-auto">
+                    <span className="text-sm text-gray-600">0</span>
+                    <input
+                        type="range"
+                        min="0"
+                        max={filteredMessages.length > 0 ? filteredMessages.length : 0} // Show up to the end
+                        value={currentMessageIndex}
+                        onChange={handleSliderChange} // Use onChange for broader compatibility, onInput for more real-time
+                        disabled={!impersonatedUser || filteredMessages.length === 0}
+                        className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex-grow"
+                        aria-label="Story Progress"
+                    />
+                    <span className="text-sm text-gray-600">{filteredMessages.length}</span>
+                </div>
+                <span className="text-sm font-medium text-gray-700 min-w-[80px] text-center">{currentMessageIndex} / {filteredMessages.length}</span>
+
             </div>
         </div>
     );
