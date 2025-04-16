@@ -7,6 +7,7 @@ import { UserUpload } from '@/app/actions/getUploads';
 // import { shouldSkip } from '@/lib/sentimentAnalysis'; 
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import { Message } from '@/lib/instagram-models';
+import * as Slider from '@radix-ui/react-slider';
 
 // Basic date formatting to YYYY-MM-DD for input[type=date]
 const formatDateForInput = (date: Date): string => {
@@ -17,6 +18,15 @@ const formatDateForInput = (date: Date): string => {
         return new Date().toISOString().split('T')[0];
     }
     return date.toISOString().split('T')[0];
+};
+
+// Format date for display
+const formatDateForDisplay = (date: Date): string => {
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
 };
 
 // Helper to calculate word count
@@ -45,12 +55,30 @@ export default function GenerateClientPage({ initialUploadData, uploadId }: Gene
         .map(msg => msg.timestamp_ms)
         .filter(ts => typeof ts === 'number' && !isNaN(ts)); // Filter out undefined/NaN
 
-    const firstMsgDate = validTimestamps.length > 0 ? new Date(Math.min(...validTimestamps)) : new Date(); // Use earliest or fallback to now
-    const lastMsgDate = validTimestamps.length > 0 ? new Date(Math.max(...validTimestamps)) : new Date();  // Use latest or fallback to now
+    const firstMsgDate = validTimestamps.length > 0 ? new Date(Math.min(...validTimestamps)) : new Date();
+    const lastMsgDate = validTimestamps.length > 0 ? new Date(Math.max(...validTimestamps)) : new Date();
 
-    // --- Filter State ---
-    const [startDate, setStartDate] = useState<string>(formatDateForInput(firstMsgDate));
-    const [endDate, setEndDate] = useState<string>(formatDateForInput(lastMsgDate));
+    // Calculate the total time range in days for the slider
+    const totalDays = Math.ceil((lastMsgDate.getTime() - firstMsgDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // State for slider values (0-100)
+    const [dateRange, setDateRange] = useState<[number, number]>([0, 100]);
+
+    // Convert slider values to actual dates
+    const startDate = useMemo(() => {
+        const daysOffset = (dateRange[0] / 100) * totalDays;
+        return formatDateForInput(new Date(firstMsgDate.getTime() + daysOffset * 24 * 60 * 60 * 1000));
+    }, [dateRange[0], firstMsgDate, totalDays]);
+
+    const endDate = useMemo(() => {
+        const daysOffset = (dateRange[1] / 100) * totalDays;
+        return formatDateForInput(new Date(firstMsgDate.getTime() + daysOffset * 24 * 60 * 60 * 1000));
+    }, [dateRange[1], firstMsgDate, totalDays]);
+
+    // Display dates
+    const startDisplayDate = useMemo(() => formatDateForDisplay(new Date(startDate)), [startDate]);
+    const endDisplayDate = useMemo(() => formatDateForDisplay(new Date(endDate)), [endDate]);
+
     // Initialize with all participant names
     const allParticipantNames = useMemo(() => initialUploadData.data.participants.map(p => p.name), [initialUploadData.data.participants]);
     const [selectedParticipants, setSelectedParticipants] = useState<string[]>(allParticipantNames);
@@ -118,6 +146,11 @@ export default function GenerateClientPage({ initialUploadData, uploadId }: Gene
         );
     };
 
+    // Handle slider change
+    const handleSliderChange = (values: number[]) => {
+        setDateRange(values as [number, number]);
+    };
+
     const handleGenerateClick = async () => {
         setIsGenerating(true);
         setGenerationResult(null);
@@ -161,26 +194,39 @@ export default function GenerateClientPage({ initialUploadData, uploadId }: Gene
                 {/* Filters Column */}
                 <div className="md:col-span-1 space-y-4 p-4 border rounded-lg bg-white shadow-sm">
                     <h2 className="text-xl font-semibold mb-3">Filters</h2>
-                    {/* Date Filters */}
-                    <div>
-                        <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                        <input
-                            type="date"
-                            id="startDate"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                        <input
-                            type="date"
-                            id="endDate"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
+
+                    {/* Date Range Slider */}
+                    <div className="space-y-6 py-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+
+                        {/* Slider Component */}
+                        <Slider.Root
+                            className="relative flex items-center select-none touch-none w-full h-5"
+                            value={dateRange}
+                            onValueChange={handleSliderChange}
+                            min={0}
+                            max={100}
+                            step={1}
+                            minStepsBetweenThumbs={1}
+                        >
+                            <Slider.Track className="bg-gray-200 relative grow rounded-full h-[3px]">
+                                <Slider.Range className="absolute bg-indigo-500 rounded-full h-full" />
+                            </Slider.Track>
+                            <Slider.Thumb
+                                className="block w-5 h-5 bg-white border-2 border-indigo-500 rounded-full hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                aria-label="Start date"
+                            />
+                            <Slider.Thumb
+                                className="block w-5 h-5 bg-white border-2 border-indigo-500 rounded-full hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                aria-label="End date"
+                            />
+                        </Slider.Root>
+
+                        {/* Date Display */}
+                        <div className="flex justify-between items-center text-sm text-gray-600">
+                            <div>{startDisplayDate}</div>
+                            <div>{endDisplayDate}</div>
+                        </div>
                     </div>
 
                     {/* Participant Filter (Checkboxes) */}

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@google/genai": "^0.8.0",
+    "@radix-ui/react-slider": "^1.2.4",
     "better-auth": "^1.2.3",
     "lucide-react": "^0.479.0",
     "mime": "^4.0.7",
