@@ -1,5 +1,5 @@
 'use client';
-
+import React from 'react';
 import { useState } from 'react';
 import { UserUpload } from '@/app/actions/getUploads';
 import { processInstagramData, InstagramStats } from '@/lib/processors';
@@ -63,7 +63,7 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                     {uploads.map((upload, index) => (
-                        <>
+                        <React.Fragment key={upload._id}>
                             <tr key={upload._id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{upload.conversationTitle}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{upload.participantCount}</td>
@@ -100,7 +100,7 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
                                     </td>
                                 </tr>
                             )}
-                        </>
+                        </React.Fragment>
                     ))}
                 </tbody>
             </table>

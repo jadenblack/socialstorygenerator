@@ -2,6 +2,7 @@ import { getServerSession } from '@/lib/auth-server-utils';
 import { getUploadsAction, UserUpload } from '@/app/actions/getUploads';
 import UploadsTable from './UploadsTable';
 import { redirect } from 'next/navigation'; // Import redirect
+import Link from "next/link";
 
 // This is now a Server Component
 export default async function UploadsPage() {
@@ -34,9 +35,9 @@ export default async function UploadsPage() {
         <div className="container mx-auto px-4 py-8">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-black">My Uploads</h1>
-                <a href="/upload" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+                <Link href="/upload" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4! rounded no-style">
                     Upload More
-                </a>
+                </Link>
             </div>
 
             {error ? (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ReactNode } from 'react';
-import { UserCircle, Upload } from 'lucide-react';
+import { UserCircle, Upload, TableOfContents } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -31,13 +31,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   Social Story Generator
                 </Link>
                 {!isPending && session?.user && (
-                  <Link
-                    href="/upload"
-                    className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
-                  >
-                    <Upload className="w-5 h-5" />
-                    <span className="text-sm">Upload</span>
-                  </Link>
+                  <>
+                    <Link
+                      href="/upload"
+                      className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      <Upload className="w-5 h-5" />
+                      <span className="text-sm">Upload</span>
+                    </Link>
+                    <Link href="/uploads" className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
+                      <TableOfContents className="w-5 h-5" />
+                      <span className="text-sm">View Uploads</span>
+                    </Link>
+                  </>
                 )}
               </div>
               <Link
