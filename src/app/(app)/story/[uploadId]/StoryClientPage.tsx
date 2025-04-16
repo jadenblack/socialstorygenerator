@@ -69,6 +69,8 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
     const { participants, messagesWithSentiment: initialMessages, conversationTitle } = initialData;
     const [impersonatedUser, setImpersonatedUser] = useState<string | null>(null);
     const [includeVulgar, setIncludeVulgar] = useState<boolean>(true);
+    const [neutralImportanceThreshold, setNeutralImportanceThreshold] = useState<number>(7);
+    const [nonNeutralImportanceThreshold, setNonNeutralImportanceThreshold] = useState<number>(5);
     const [displayedMessages, setDisplayedMessages] = useState<MessageWithSentiment[]>([]);
     const [currentMessageIndex, setCurrentMessageIndex] = useState<number>(0);
     const [isPaused, setIsPaused] = useState<boolean>(true);
@@ -84,20 +86,67 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
         return colors;
     }, [participants]);
 
-    // Sort initial messages chronologically and filter based on vulgarity setting
+    // Sort initial messages chronologically
     const sortedMessages = useMemo(() => {
-        // Ensure messages are sorted by timestamp ascending
         return [...initialMessages].sort((a, b) => a.timestamp_ms - b.timestamp_ms);
     }, [initialMessages]);
 
+    // Filter messages based on vulgarity and importance logic
     const filteredMessages = useMemo(() => {
-        const baseMessages = sortedMessages; // Use the sorted messages
-        if (includeVulgar) {
-            return baseMessages;
-        } else {
-            return baseMessages.filter(msg => !msg.vulgar);
-        }
-    }, [sortedMessages, includeVulgar]); // Depend on sortedMessages
+        console.log(`Filtering with thresholds: Neutral=${neutralImportanceThreshold}, NonNeutral=${nonNeutralImportanceThreshold}`);
+        // 1. Apply vulgarity filter first
+        const baseMessages = includeVulgar ? sortedMessages : sortedMessages.filter(msg => !msg.vulgar);
+
+        // 2. Apply importance filtering
+        const finalMessageIndices = new Set<number>();
+        const nonImportantBufferIndices: number[] = [];
+        const MAX_BUFFER_SIZE = 4;
+        const TIME_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+        baseMessages.forEach((currentMsg, i) => {
+            const isImportant = (
+                (currentMsg.sentiment !== 'Neutral' && currentMsg.importance >= nonNeutralImportanceThreshold) ||
+                (currentMsg.sentiment === 'Neutral' && currentMsg.importance >= neutralImportanceThreshold)
+            );
+
+            if (isImportant) {
+                // Add preceding non-important messages within the time window
+                nonImportantBufferIndices.forEach(bufferedIndex => {
+                    if (currentMsg.timestamp_ms - baseMessages[bufferedIndex].timestamp_ms <= TIME_WINDOW_MS) {
+                        finalMessageIndices.add(bufferedIndex);
+                    }
+                    // No need to check older ones as buffer is implicitly sorted by add order
+                });
+                // Add the important message itself
+                finalMessageIndices.add(i);
+                // Clear the buffer
+                nonImportantBufferIndices.length = 0; // Efficient way to clear
+            } else {
+                // Add non-important message index to buffer
+                nonImportantBufferIndices.push(i);
+                // Maintain buffer size
+                if (nonImportantBufferIndices.length > MAX_BUFFER_SIZE) {
+                    nonImportantBufferIndices.shift(); // Remove the oldest
+                }
+            }
+        });
+
+        // 3. Build the final list from the selected indices
+        const finalIndicesArray = Array.from(finalMessageIndices).sort((a, b) => a - b);
+        const result = finalIndicesArray.map(index => baseMessages[index]);
+        console.log(`Original: ${baseMessages.length}, Filtered: ${result.length}`);
+        return result;
+
+    }, [sortedMessages, includeVulgar, neutralImportanceThreshold, nonNeutralImportanceThreshold]);
+
+    // Reset displayed messages and index when filteredMessages change
+    useEffect(() => {
+        console.log('Filtered messages changed, resetting display.');
+        setDisplayedMessages([]);
+        setCurrentMessageIndex(0);
+        setIsPaused(true); // Start paused after filter change
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    }, [filteredMessages]);
 
     // Effect to handle message display timing
     useEffect(() => {
@@ -176,10 +225,8 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
     // Handler to start the story display
     const handleStartStory = (selectedUser: string) => {
         setImpersonatedUser(selectedUser);
-        setDisplayedMessages([]); // Reset displayed messages
-        setCurrentMessageIndex(0); // Reset index
-        setIsPaused(false); // Start playing immediately
-        if (timeoutRef.current) clearTimeout(timeoutRef.current); // Clear any pending timeout
+        setIsPaused(false); // Start playing
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
 
     const handlePerspectiveChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -187,22 +234,14 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
         if (selectedUser) {
             handleStartStory(selectedUser);
         } else {
-            // Stop displaying if placeholder is selected
-            setIsPaused(true); // Pause if no user selected
+            setIsPaused(true);
             setImpersonatedUser(null);
-            setDisplayedMessages([]);
-            setCurrentMessageIndex(0);
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
         }
     };
 
     const handleVulgarityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const checked = event.target.checked;
-        setIncludeVulgar(checked);
-        // Optionally restart if perspective is already chosen
-        if (impersonatedUser) {
-            handleStartStory(impersonatedUser);
-        }
+        setIncludeVulgar(event.target.checked);
     };
 
     // Handler for Pause/Resume button
@@ -241,12 +280,13 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
         });
     };
 
+
     return (
         <div className="container mx-auto px-4 py-8 h-screen flex flex-col">
             <h1 className="text-3xl font-bold mb-4 text-center">Story: {conversationTitle}</h1>
 
             {/* --- Settings --- */}
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6 px-4 py-3 bg-gray-100 rounded-lg shadow-sm">
+            <div className="flex flex-wrap justify-center items-center gap-4 mb-6 px-4 py-3 bg-gray-100 rounded-lg shadow-sm">
                 <div className="flex items-center gap-2">
                     <label htmlFor="perspective-select" className="text-sm font-medium text-gray-700">View as:</label>
                     <select
