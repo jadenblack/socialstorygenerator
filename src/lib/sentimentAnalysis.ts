@@ -253,15 +253,16 @@ export interface SentimentAnalysisMessage {
 export interface SentimentAnalysisResult {
     messages: SentimentAnalysisMessage[];
 }
-
 // Helper function to check if a message should be skipped
 export function shouldSkip(content: string): boolean {
     const lowerContent = content.toLowerCase();
+    const reactionRegex = /reacted .+ to your message/i;
     return (
         lowerContent.includes("liked a message") ||
         lowerContent.includes("sent an attachment") ||
         lowerContent.includes("sent a photo") || // Added common variants
-        lowerContent.includes("sent a video")
+        lowerContent.includes("sent a video") ||
+        reactionRegex.test(content)
     );
 }
 
