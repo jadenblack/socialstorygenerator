@@ -17,6 +17,30 @@ interface StoryClientPageProps {
     };
 }
 
+// Map sentiments to audio files
+const sentimentToAudioMap: Record<string, string> = {
+    Fear: '/Fear.mp3',
+    Joy: '/Joy.mp3',
+    Surprise: '/Surprise.mp3',
+    Neutral: '/Normal Sound Effect.mp3',
+    Warmth: '/Warmth Sound Effect.mp3',
+    Distant: '/Distant.mp3',
+    // Add fallbacks for other sentiments
+    Awkwardness: '/Normal Sound Effect.mp3',
+    Romantic: '/Warmth Sound Effect.mp3',
+    Guilt: '/Fear.mp3',
+    Anger: '/Fear.mp3',
+    Sympathy: '/Warmth Sound Effect.mp3',
+    Sadness: '/Distant.mp3',
+    Sarcasm: '/Surprise.mp3',
+    Wonder: '/Surprise.mp3',
+    Positivity: '/Joy.mp3',
+    Distress: '/Fear.mp3',
+    Sorrow: '/Distant.mp3',
+    SelfJudgment: '/Fear.mp3',
+    default: '/Normal Sound Effect.mp3'
+};
+
 // Helper to count words (simplified)
 const countWords = (text: string = ''): number => text.trim().split(/\s+/).filter(Boolean).length;
 
@@ -76,6 +100,14 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
     const [isPaused, setIsPaused] = useState<boolean>(true);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const messageContainerRef = useRef<HTMLDivElement>(null); // Ref for scrolling
+
+    // Audio-related state
+    const [volume, setVolume] = useState<number>(0.7); // Default volume at 70%
+    const [isMuted, setIsMuted] = useState<boolean>(false); // Mute state
+    const [currentAudio, setCurrentAudio] = useState<string | null>(null); // Current sentiment audio file
+    const audioRef = useRef<HTMLAudioElement | null>(null); // Audio element reference
+    const nextAudioRef = useRef<HTMLAudioElement | null>(null); // For crossfading
+    const fadeInterval = useRef<NodeJS.Timeout | null>(null); // For crossfade timing
 
     // Assign colors to participants
     const participantColors = useMemo(() => {
@@ -146,7 +178,199 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
         setCurrentMessageIndex(0);
         setIsPaused(true); // Start paused after filter change
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+        // Stop any audio playing
+        stopAudio();
     }, [filteredMessages]);
+
+    // Function to handle audio playback based on sentiment
+    const playAudioForSentiment = (sentiment: string) => {
+        const audioPath = sentimentToAudioMap[sentiment] || sentimentToAudioMap.default;
+
+        // Don't change audio if already playing the same sentiment
+        if (currentAudio === audioPath) return;
+
+        // Create and prepare the next audio element
+        if (nextAudioRef.current) {
+            nextAudioRef.current.pause();
+            nextAudioRef.current = null;
+        }
+
+        // Create a new audio element
+        const nextAudio = new Audio(audioPath);
+        nextAudio.loop = true;
+        nextAudio.volume = isMuted ? 0 : 0;  // Start at 0 volume for fade in
+        nextAudioRef.current = nextAudio;
+
+        // Use a flag to track if this audio element is still the current one we want to play
+        let isCurrentPlayRequest = true;
+
+        // Start playing the new audio with proper error handling
+        nextAudio.play().then(() => {
+            // Only proceed if this is still the current play request
+            if (!isCurrentPlayRequest) return;
+
+            // Clear any existing fade interval
+            if (fadeInterval.current) {
+                clearInterval(fadeInterval.current);
+            }
+
+            // Setup the crossfade
+            const FADE_DURATION = 1000; // 1 second fade
+            const STEPS = 20; // Number of steps in the fade
+            const STEP_TIME = FADE_DURATION / STEPS;
+            const VOLUME_STEP = volume / STEPS;
+
+            let currentStep = 0;
+
+            fadeInterval.current = setInterval(() => {
+                // Only proceed if this is still the active fade request
+                if (!isCurrentPlayRequest) {
+                    if (fadeInterval.current) {
+                        clearInterval(fadeInterval.current);
+                        fadeInterval.current = null;
+                    }
+                    return;
+                }
+
+                currentStep++;
+
+                // Fade out current audio
+                if (audioRef.current) {
+                    audioRef.current.volume = Math.max(0, isMuted ? 0 : volume - (VOLUME_STEP * currentStep));
+                }
+
+                // Fade in next audio
+                if (nextAudioRef.current) {
+                    nextAudioRef.current.volume = Math.min(isMuted ? 0 : volume, VOLUME_STEP * currentStep);
+                }
+
+                if (currentStep >= STEPS) {
+                    // Fade complete
+                    if (fadeInterval.current) {
+                        clearInterval(fadeInterval.current);
+                        fadeInterval.current = null;
+                    }
+
+                    // Stop the old audio
+                    if (audioRef.current) {
+                        audioRef.current.pause();
+                        audioRef.current = null;
+                    }
+
+                    // Transfer reference
+                    audioRef.current = nextAudioRef.current;
+                    nextAudioRef.current = null;
+                    setCurrentAudio(audioPath);
+                }
+            }, STEP_TIME);
+        }).catch(error => {
+            // Only log if this is still the current play request we care about
+            if (isCurrentPlayRequest) {
+                console.error("Audio playback error:", error);
+            }
+        });
+
+        // Add a cleanup function to the component that marks this play request as outdated
+        // if a new sentiment/audio is requested
+        return () => {
+            isCurrentPlayRequest = false;
+        };
+    };
+
+    // Function to safely stop audio
+    const stopAudio = () => {
+        // Clear fade interval
+        if (fadeInterval.current) {
+            clearInterval(fadeInterval.current);
+            fadeInterval.current = null;
+        }
+
+        // Safely stop current audio
+        if (audioRef.current) {
+            const audio = audioRef.current;
+            // Set volume to 0 before pausing to avoid abrupt stops
+            audio.volume = 0;
+
+            // Small timeout to let volume change take effect
+            setTimeout(() => {
+                audio.pause();
+            }, 50);
+
+            audioRef.current = null;
+        }
+
+        // Safely stop next audio if it exists
+        if (nextAudioRef.current) {
+            const nextAudio = nextAudioRef.current;
+            // Set volume to 0 before pausing
+            nextAudio.volume = 0;
+
+            // Small timeout to let volume change take effect
+            setTimeout(() => {
+                nextAudio.pause();
+            }, 50);
+
+            nextAudioRef.current = null;
+        }
+
+        setCurrentAudio(null);
+    };
+
+    // Handle volume change
+    const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newVolume = parseFloat(event.target.value);
+        setVolume(newVolume);
+
+        // Update current audio volume if not muted
+        if (audioRef.current && !isMuted) {
+            audioRef.current.volume = newVolume;
+        }
+    };
+
+    // Handle mute toggle
+    const handleMuteToggle = () => {
+        setIsMuted(!isMuted);
+
+        // Update audio volume based on mute state
+        if (audioRef.current) {
+            audioRef.current.volume = !isMuted ? 0 : volume;
+        }
+    };
+
+    // Effect to update audio when message changes
+    useEffect(() => {
+        // Flag to track if this effect instance is still current
+        let isCurrentEffect = true;
+
+        // Function to handle audio changes that respects component lifecycle
+        const updateAudio = () => {
+            if (!isPaused && currentMessageIndex < filteredMessages.length) {
+                const currentMessage = filteredMessages[currentMessageIndex];
+
+                // Play audio based on current message sentiment
+                if (isCurrentEffect) {
+                    return playAudioForSentiment(currentMessage.sentiment);
+                }
+            } else {
+                // Stop audio when paused or end of story reached
+                if (isCurrentEffect) {
+                    stopAudio();
+                }
+            }
+            return undefined;
+        };
+
+        // Call the audio update function
+        const cleanup = updateAudio();
+
+        // Cleanup function for the effect
+        return () => {
+            isCurrentEffect = false;
+            // Call any cleanup returned from updateAudio
+            if (cleanup) cleanup();
+        };
+    }, [isPaused, currentMessageIndex, filteredMessages, isMuted, volume]);
 
     // Effect to handle message display timing
     useEffect(() => {
@@ -237,6 +461,9 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
             setIsPaused(true);
             setImpersonatedUser(null);
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+            // Stop audio when changing perspective
+            stopAudio();
         }
     };
 
@@ -419,7 +646,44 @@ export default function StoryClientPage({ initialData }: StoryClientPageProps) {
                     <span className="text-sm text-gray-600">{filteredMessages.length}</span>
                 </div>
                 <span className="text-sm font-medium text-gray-700 min-w-[80px] text-center">{currentMessageIndex} / {filteredMessages.length}</span>
+            </div>
 
+            {/* --- Audio Controls --- */}
+            <div className="mt-2 p-4 bg-gray-100 rounded-lg shadow-sm flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleMuteToggle}
+                        className="p-2 rounded-full bg-white shadow hover:bg-gray-50 transition-colors"
+                        aria-label={isMuted ? "Unmute" : "Mute"}
+                    >
+                        {isMuted ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                        )}
+                    </button>
+                    <label htmlFor="volume-slider" className="sr-only">Volume</label>
+                    <input
+                        id="volume-slider"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        className="w-24 sm:w-32 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer"
+                    />
+                </div>
+                {currentAudio && (
+                    <span className="text-sm text-gray-600">
+                        Now playing: {currentAudio.split('/').pop()?.replace('.mp3', '')}
+                    </span>
+                )}
             </div>
         </div>
     );
