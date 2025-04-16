@@ -6,6 +6,7 @@ import { UserUpload } from '@/app/actions/getUploads';
 import { processInstagramData, InstagramStats } from '@/lib/processors';
 import StatsDisplay from '@/app/components/StatsDisplay';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
+import { deleteUploadAction } from '@/app/actions/deleteUpload';
 
 interface UploadsTableProps {
     uploads: UserUpload[];
@@ -20,6 +21,9 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
     const [openIndex, setOpenIndex] = useState<number>(-1);
     const [detailedStats, setDetailedStats] = useState<InstagramStats | null>(null);
     const [isLoadingStats, setIsLoadingStats] = useState<boolean>(false);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
     const handleToggle = (index: number, data: any) => {
         if (openIndex === index) {
@@ -40,8 +44,37 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
                 }
                 setIsLoadingStats(false);
             }, 50); // Small delay to show loading spinner
-
         }
+    };
+
+    const handleDeleteClick = (uploadId: string) => {
+        setShowDeleteConfirm(uploadId);
+    };
+
+    const confirmDelete = async (uploadId: string) => {
+        try {
+            setIsDeleting(uploadId);
+            setDeleteError(null);
+
+            const result = await deleteUploadAction(uploadId);
+
+            if (result.success) {
+                // No need to manually remove from the list
+                // revalidatePath in the action will trigger a re-render
+            } else {
+                setDeleteError(result.message || 'Failed to delete upload');
+            }
+        } catch (error) {
+            console.error('Error deleting upload:', error);
+            setDeleteError(error instanceof Error ? error.message : 'An unexpected error occurred');
+        } finally {
+            setIsDeleting(null);
+            setShowDeleteConfirm(null);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteConfirm(null);
     };
 
     if (!uploads || uploads.length === 0) {
@@ -50,6 +83,42 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
 
     return (
         <div className="overflow-x-auto">
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this conversation and its story? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={cancelDelete}
+                                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                disabled={!!isDeleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => confirmDelete(showDeleteConfirm)}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                disabled={!!isDeleting}
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <LoadingSpinner size="w-4 h-4 inline mr-2" />
+                                        Deleting...
+                                    </>
+                                ) : 'Delete'}
+                            </button>
+                        </div>
+                        {deleteError && (
+                            <p className="mt-4 text-sm text-red-600">{deleteError}</p>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
@@ -94,7 +163,19 @@ export default function UploadsTable({ uploads }: UploadsTableProps) {
                                             </svg>
                                         </button>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end space-x-2">
+                                        <button
+                                            onClick={() => handleDeleteClick(upload._id.toString())}
+                                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                            disabled={isDeleting === upload._id.toString()}
+                                        >
+                                            {isDeleting === upload._id.toString() ? (
+                                                <>
+                                                    <LoadingSpinner size="w-4 h-4 inline mr-1" />
+                                                    Deleting...
+                                                </>
+                                            ) : 'Delete'}
+                                        </button>
                                         <Link href={buttonLink} className={buttonClass}>
                                             {buttonText}
                                         </Link>
