@@ -15,7 +15,7 @@ export default function FileUpload({ onFileSelected, onError }: FileUploadProps)
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const validateFile = (file: File): boolean => {
+    const validateFile = useCallback((file: File): boolean => {
         // Check if file is JSON
         if (!file.type.includes('json') && !file.name.toLowerCase().endsWith('.json')) {
             const error = 'Only JSON files are allowed';
@@ -25,7 +25,7 @@ export default function FileUpload({ onFileSelected, onError }: FileUploadProps)
         }
         setErrorMessage(null);
         return true;
-    };
+    }, [onError]);
 
     const handleFileChange = useCallback(async (file: File) => {
         if (!validateFile(file)) return;
