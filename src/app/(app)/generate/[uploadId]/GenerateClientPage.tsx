@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { generateStoryAction, GenerateStoryInput } from '@/app/actions/generateStory';
 import { UserUpload } from '@/app/actions/getUploads';
-// Remove shouldSkip import from client component
-// import { shouldSkip } from '@/lib/sentimentAnalysis'; 
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import { Message } from '@/lib/instagram-models';
 import * as Slider from '@radix-ui/react-slider';
+import { GenerateStoryResult } from '@/lib/apiTypes';
 
 // Basic date formatting to YYYY-MM-DD for input[type=date]
 const formatDateForInput = (date: Date): string => {
@@ -40,9 +38,19 @@ const MAX_WORD_COUNT = 6000; // Define the maximum word count limit
 interface GenerateClientPageProps {
     initialUploadData: UserUpload;
     uploadId: string;
+    generateStory: (input: {
+        uploadId: string;
+        startDate: string;
+        endDate: string;
+        selectedParticipants: string[];
+    }) => Promise<GenerateStoryResult>;
 }
 
-export default function GenerateClientPage({ initialUploadData, uploadId }: GenerateClientPageProps) {
+export default function GenerateClientPage({
+    initialUploadData,
+    uploadId,
+    generateStory
+}: GenerateClientPageProps) {
     // Removed uploadData state, using prop directly
     // const [uploadData, setUploadData] = useState<UserUpload | null>(null);
     const [generationResult, setGenerationResult] = useState<{ message: string; story?: string } | null>(null);
@@ -160,23 +168,21 @@ export default function GenerateClientPage({ initialUploadData, uploadId }: Gene
         const startIso = startDate ? new Date(startDate).toISOString() : new Date(0).toISOString();
         const endIso = endDate ? new Date(endDate).toISOString() : new Date().toISOString(); // Use current date if end date is missing
 
-
-        const input: GenerateStoryInput = {
-            uploadId,
-            startDate: startIso,
-            endDate: endIso,
-            selectedParticipants,
-        };
-
         try {
-            const result = await generateStoryAction(input);
+            const result = await generateStory({
+                uploadId,
+                startDate: startIso,
+                endDate: endIso,
+                selectedParticipants,
+            });
+
             if (result.success) {
-                setGenerationResult({ message: result.message || 'Success!', story: result.story });
+                setGenerationResult({ message: result.message || 'Success!', story: result.data?.story });
             } else {
                 setClientError(result.message || 'Failed to generate story.');
             }
         } catch (error) {
-            console.error("Error calling generateStoryAction:", error);
+            console.error("Error calling generateStory:", error);
             setClientError(error instanceof Error ? error.message : "An unexpected error occurred.");
         }
 

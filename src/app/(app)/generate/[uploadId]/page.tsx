@@ -1,4 +1,5 @@
 import { getUploadByIdAction } from '@/app/actions/getUploadById';
+import { generateStoryAction } from '@/app/actions/generateStory';
 import GenerateClientPage from './GenerateClientPage'; // Import the client component
 import { notFound } from 'next/navigation';
 
@@ -28,6 +29,7 @@ export default async function GeneratePage({ params }: GeneratePageParams) {
         <GenerateClientPage
             initialUploadData={result.upload}
             uploadId={uploadId}
+            generateStory={generateStoryAction}
         />
     );
 } 

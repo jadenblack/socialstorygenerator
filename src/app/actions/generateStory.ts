@@ -5,6 +5,7 @@ import { getUploadByIdAction } from './getUploadById'; // To fetch the full data
 import { shouldSkip } from '@/lib/sentimentAnalysis'; // Import for server-side filtering
 import { cleanContent } from '@/lib/sentimentAnalysis'; // Also import cleanContent if needed
 import { Message } from '@/lib/instagram-models';
+import { GenerateStoryResult } from '@/lib/apiTypes';
 
 // Define the expected input schema using Zod for validation
 const GenerateStoryInputSchema = z.object({
@@ -15,13 +16,6 @@ const GenerateStoryInputSchema = z.object({
 });
 
 export type GenerateStoryInput = z.infer<typeof GenerateStoryInputSchema>;
-
-export interface GenerateStoryResult {
-    success: boolean;
-    message?: string;
-    story?: string; // Or whatever the result should be
-    filteredMessageCount?: number; // Optional: return final count
-}
 
 export async function generateStoryAction(input: GenerateStoryInput): Promise<GenerateStoryResult> {
     // Validate input against the schema
@@ -76,7 +70,7 @@ export async function generateStoryAction(input: GenerateStoryInput): Promise<Ge
         const finalFilteredMessageCount = finalFilteredMessages.length;
 
         if (finalFilteredMessageCount === 0) {
-            return { success: false, message: "No messages match the selected filters after applying all rules.", filteredMessageCount: 0 };
+            return { success: false, message: "No messages match the selected filters after applying all rules.", data: { story: "", filteredMessageCount: 0 } };
         }
 
         // 3. Prepare messages for LLM (Example: clean and format)
@@ -100,8 +94,10 @@ export async function generateStoryAction(input: GenerateStoryInput): Promise<Ge
         return {
             success: true,
             message: `Story generation request processed. ${finalFilteredMessageCount} messages were used. (Placeholder)`,
-            story: `This is a placeholder story based on your ${finalFilteredMessageCount} filtered messages.`,
-            filteredMessageCount: finalFilteredMessageCount
+            data: {
+                story: `This is a placeholder story based on your ${finalFilteredMessageCount} filtered messages.`,
+                filteredMessageCount: finalFilteredMessageCount
+            }
         };
 
     } catch (error) {
